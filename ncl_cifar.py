@@ -37,7 +37,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
             # Extract features
             # model.eval()
             all_features = []
-            for (data, _), _ in train_loader:
+            for (data, _), _, _ in train_loader:
                 data = data.to(device)
                 feat, _, _, _ = model(x, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
