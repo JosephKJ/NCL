@@ -24,18 +24,17 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion1 = nn.CrossEntropyLoss()
     criterion2 = BCE()
 
-    spacing_loss_start_epoch = 10
+    spacing_loss_start_epoch = 5
     enable_spacing_loss = False
     n_clusters = 100
-    beta = 0.05
+    beta = 0.005
     cm = CentroidManager(512, n_clusters)
-
 
     for epoch in range(args.epochs):
 
         if epoch == spacing_loss_start_epoch:
             # Extract features
-            # model.eval()
+            model.eval()
             all_features = []
             for (data, _), _, _ in train_loader:
                 data = data.to(device)
