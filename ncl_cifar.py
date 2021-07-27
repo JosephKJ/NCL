@@ -38,7 +38,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
             all_features = []
             for (data, _), _, _ in train_loader:
                 data = data.to(device)
-                feat, _, _, _ = model(data, 'feat_logit')
+                _, feat, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
             all_features = np.vstack(all_features)
             # Initialize
@@ -96,7 +96,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
             # Spacing loss
             if enable_spacing_loss:
                 spacing_loss = torch.tensor(0.).to(device)
-                features = feat.detach().cpu().numpy()
+                features = feat_q.detach().cpu().numpy()
                 # Do re-assigment
                 cluster_ids = cm.update_assingment(features)
                 # Update centroids
@@ -106,10 +106,10 @@ def train(model, train_loader, unlabeled_eval_loader, args):
                         continue
                     cm.update_cluster(features[cluster_ids == k], k)
                 # Compute loss
-                batch_size = feat.size()[0]
+                batch_size = feat_q.size()[0]
                 centroids = torch.FloatTensor(cm.centroids).to(device)
                 for i in range(batch_size):
-                    diff = feat[i] - centroids[cluster_ids[i]]
+                    diff = feat_q[i] - centroids[cluster_ids[i]]
                     distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
                     spacing_loss += 0.5 * beta * torch.squeeze(distance)
                 loss += spacing_loss
@@ -236,8 +236,8 @@ def test(model, test_loader, args):
     predictions = KMeans(n_clusters=20, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
     acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
-    print('Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
-    print('From features: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
+    print('From logits \t:Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
 if __name__ == "__main__":
