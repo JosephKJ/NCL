@@ -217,11 +217,12 @@ def train_old(model, train_loader, unlabeled_eval_loader, args):
 
 def test(model, test_loader, args):
     model.eval()
-    preds=np.array([])
-    targets=np.array([])
+    preds = np.array([])
+    targets = np.array([])
+    features = np.array([])
     for batch_idx, (x, label, _) in enumerate(tqdm(test_loader)):
         x, label = x.to(device), label.to(device)
-        output1, output2 = model(x)
+        feat, feat_q, output1, output2 = model(x, 'feat_logit')
         if args.head == 'head1':
             output = output1
         else:
@@ -229,8 +230,13 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets = np.append(targets, label.cpu().numpy())
         preds = np.append(preds, pred.cpu().numpy())
+        features = np.append(features, feat.cpu().numpy())
+
+    predictions = KMeans(n_clusters=20, n_init=20).fit_predict(features)
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
+    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    print('From features: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
 if __name__ == "__main__":
