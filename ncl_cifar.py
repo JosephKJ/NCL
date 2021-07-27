@@ -219,7 +219,7 @@ def test(model, test_loader, args):
     model.eval()
     preds = np.array([])
     targets = np.array([])
-    features = np.array([])
+    features = []
     for batch_idx, (x, label, _) in enumerate(tqdm(test_loader)):
         x, label = x.to(device), label.to(device)
         feat, feat_q, output1, output2 = model(x, 'feat_logit')
@@ -230,10 +230,10 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets = np.append(targets, label.cpu().numpy())
         preds = np.append(preds, pred.cpu().numpy())
-        features = np.append(features, feat.detach().cpu().numpy())
+        features.extend(feat.detach().cpu().numpy())
 
-    print(features)
-    predictions = KMeans(n_clusters=20, n_init=20).fit_predict(features)
+    print(np.array(features))
+    predictions = KMeans(n_clusters=20, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
     acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
