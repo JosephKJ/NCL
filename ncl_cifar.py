@@ -23,6 +23,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
     criterion1 = nn.CrossEntropyLoss()
     criterion2 = BCE()
+    mse = nn.MSELoss()
 
     spacing_loss_start_epoch = 5
     enable_spacing_loss = False
@@ -109,9 +110,10 @@ def train(model, train_loader, unlabeled_eval_loader, args):
                 batch_size = feat_q.size()[0]
                 centroids = torch.FloatTensor(cm.centroids).to(device)
                 for i in range(batch_size):
-                    diff = feat_q[i] - centroids[cluster_ids[i]]
-                    distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
-                    spacing_loss += 0.5 * beta * torch.squeeze(distance)
+                    # diff = feat_q[i] - centroids[cluster_ids[i]]
+                    # distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
+                    # spacing_loss += 0.5 * beta * torch.squeeze(distance)
+                    spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
                 loss += spacing_loss
 
             # # NCL loss for unlabeled data
