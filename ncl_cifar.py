@@ -39,7 +39,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
             all_features = []
             for (data, _), _, _ in train_loader:
                 data = data.to(device)
-                feat, _, _, _ = model(x, 'feat_logit')
+                feat, _, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
             all_features = np.vstack(all_features)
 
