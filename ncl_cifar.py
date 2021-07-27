@@ -230,7 +230,7 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets = np.append(targets, label.cpu().numpy())
         preds = np.append(preds, pred.cpu().numpy())
-        features = np.append(features, feat.detach().cpu().numpy())
+        features = np.extend(features, feat.detach().cpu().numpy())
 
     predictions = KMeans(n_clusters=20, n_init=20).fit_predict(features)
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
