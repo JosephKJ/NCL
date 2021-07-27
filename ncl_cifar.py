@@ -24,10 +24,10 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion1 = nn.CrossEntropyLoss()
     criterion2 = BCE()
 
-    spacing_loss_start_epoch = 0
+    spacing_loss_start_epoch = 10
     enable_spacing_loss = False
     n_clusters = 100
-    beta = 1
+    beta = 0.05
     cm = CentroidManager(512, n_clusters)
 
 
@@ -42,7 +42,6 @@ def train(model, train_loader, unlabeled_eval_loader, args):
                 feat, _, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
             all_features = np.vstack(all_features)
-
             # Initialize
             cm.init_clusters(all_features)
             enable_spacing_loss = True
