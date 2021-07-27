@@ -25,7 +25,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 150
+    spacing_loss_start_epoch = 5
     enable_spacing_loss = False
     n_clusters = 100
     beta = 0.005
@@ -116,16 +116,16 @@ def train(model, train_loader, unlabeled_eval_loader, args):
                     spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
                 loss += spacing_loss
 
-            # NCL loss for unlabeled data
-            loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
+            # # NCL loss for unlabeled data
+            # loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
 
-            # NCL loss for labeled data
-            loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
+            # # NCL loss for labeled data
+            # loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
 
-            if epoch > 0:
-                loss += loss_ncl_ulb * args.w_ncl_ulb + loss_ncl_la * args.w_ncl_la
-            else:
-                loss += loss_ncl_la * args.w_ncl_la
+            # if epoch > 0:
+            #     loss += loss_ncl_ulb * args.w_ncl_ulb + loss_ncl_la * args.w_ncl_la
+            # else:
+            #     loss += loss_ncl_la * args.w_ncl_la
 
             # ===================backward=====================
             loss_record.update(loss.item(), x.size(0))
