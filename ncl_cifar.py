@@ -230,13 +230,12 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets = np.append(targets, label.cpu().numpy())
         preds = np.append(preds, pred.cpu().numpy())
-        features.extend(feat.detach().cpu().numpy())
+        features.extend(feat_q.detach().cpu().numpy())
 
-    print(np.array(features))
     predictions = KMeans(n_clusters=20, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
     acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
-    print('From logits \t:Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
     print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
