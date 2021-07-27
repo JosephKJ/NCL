@@ -14,9 +14,132 @@ from tqdm import tqdm
 import numpy as np
 import os
 from models.NCL import NCLMemory
+from utils.spacing import CentroidManager
 
 
 def train(model, train_loader, unlabeled_eval_loader, args):
+    print ('Start Neighborhood Contrastive Learning:')
+    optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
+    criterion1 = nn.CrossEntropyLoss()
+    criterion2 = BCE()
+
+    spacing_loss_start_epoch = 0
+    enable_spacing_loss = False
+    n_clusters = 100
+    beta = 1
+    cm = CentroidManager(512, n_clusters)
+
+
+    for epoch in range(args.epochs):
+
+        if epoch == spacing_loss_start_epoch:
+            # Extract features
+            # model.eval()
+            all_features = []
+            for (data, _), _ in train_loader:
+                data = data.to(device)
+                feat, _, _, _ = model(x, 'feat_logit')
+                all_features.append(feat.detach().cpu().numpy())
+            all_features = np.vstack(all_features)
+
+            # Initialize
+            cm.init_clusters(all_features)
+            enable_spacing_loss = True
+            print('Initialized spacing loss.')
+            
+        loss_record = AverageMeter()
+        model.train()
+
+        exp_lr_scheduler.step()
+        w = args.rampup_coefficient * ramps.sigmoid_rampup(epoch, args.rampup_length)
+        for batch_idx, ((x, x_bar),  label, idx) in enumerate(tqdm(train_loader)):
+
+            x, x_bar, label = x.to(device), x_bar.to(device), label.to(device)
+            idx = idx.to(device)
+
+            mask_lb = label < args.num_labeled_classes
+
+            feat, feat_q, output1, output2 = model(x, 'feat_logit')
+            feat_bar, feat_k, output1_bar, output2_bar = model(x_bar, 'feat_logit')
+
+            prob1, prob1_bar, prob2, prob2_bar = F.softmax(output1, dim=1), F.softmax(output1_bar, dim=1), F.softmax(
+                output2, dim=1), F.softmax(output2_bar, dim=1)
+
+            rank_feat = (feat[~mask_lb]).detach()
+            if args.bce_type == 'cos':
+                # default: cosine similarity with threshold
+                feat_row, feat_col = PairEnum(F.normalize(rank_feat, dim=1))
+                tmp_distance_ori = torch.bmm(feat_row.view(feat_row.size(0), 1, -1), feat_col.view(feat_row.size(0), -1, 1))
+                tmp_distance_ori = tmp_distance_ori.squeeze()
+                target_ulb = torch.zeros_like(tmp_distance_ori).float() - 1
+                target_ulb[tmp_distance_ori > args.costhre] = 1
+            elif args.bce_type == 'RK':
+                # top-k rank statics
+                rank_idx = torch.argsort(rank_feat, dim=1, descending=True)
+                rank_idx1, rank_idx2 = PairEnum(rank_idx)
+                rank_idx1, rank_idx2 = rank_idx1[:, :args.topk], rank_idx2[:, :args.topk]
+                rank_idx1, _ = torch.sort(rank_idx1, dim=1)
+                rank_idx2, _ = torch.sort(rank_idx2, dim=1)
+                rank_diff = rank_idx1 - rank_idx2
+                rank_diff = torch.sum(torch.abs(rank_diff), dim=1)
+                target_ulb = torch.ones_like(rank_diff).float().to(device)
+                target_ulb[rank_diff > 0] = -1
+
+            prob1_ulb, _ = PairEnum(prob2[~mask_lb])
+            _, prob2_ulb = PairEnum(prob2_bar[~mask_lb])
+
+            # basic loss
+            loss_ce = criterion1(output1[mask_lb], label[mask_lb])
+            loss_bce = criterion2(prob1_ulb, prob2_ulb, target_ulb)
+            consistency_loss = F.mse_loss(prob1, prob1_bar) + F.mse_loss(prob2, prob2_bar)
+            loss = loss_ce + loss_bce + w * consistency_loss
+
+            # Spacing loss
+            if enable_spacing_loss:
+                spacing_loss = torch.tensor(0.).to(device)
+                features = feat.detach().cpu().numpy()
+                # Do re-assigment
+                cluster_ids = cm.update_assingment(features)
+                # Update centroids
+                elem_count = np.bincount(cluster_ids, minlength=n_clusters)
+                for k in range(n_clusters):
+                    if elem_count[k] == 0:
+                        continue
+                    cm.update_cluster(features[cluster_ids == k], k)
+                # Compute loss
+                batch_size = feat.size()[0]
+                centroids = torch.FloatTensor(cm.centroids).to(device)
+                for i in range(batch_size):
+                    diff = feat[i] - centroids[cluster_ids[i]]
+                    distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
+                    spacing_loss += 0.5 * beta * torch.squeeze(distance)
+                loss += spacing_loss
+
+            # # NCL loss for unlabeled data
+            # loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
+
+            # # NCL loss for labeled data
+            # loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
+
+            # if epoch > 0:
+            #     loss += loss_ncl_ulb * args.w_ncl_ulb + loss_ncl_la * args.w_ncl_la
+            # else:
+            #     loss += loss_ncl_la * args.w_ncl_la
+
+            # ===================backward=====================
+            loss_record.update(loss.item(), x.size(0))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        args.head = 'head2'
+        print('Train Epoch: {} Avg Loss: {:.4f}'.format(epoch, loss_record.avg))
+        print('test on unlabeled classes')
+        test(model, unlabeled_eval_loader, args)
+
+
+def train_old(model, train_loader, unlabeled_eval_loader, args):
     print ('Start Neighborhood Contrastive Learning:')
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)

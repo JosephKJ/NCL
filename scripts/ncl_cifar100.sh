@@ -16,7 +16,7 @@ python ncl_cifar.py \
         --num_unlabeled_classes 20 \
         --dataset_name cifar100 \
         --seed 5 \
-        --model_name resnet_cifar100_ncl \
+        --model_name resnet_cifar100_ncl_spacing \
         --mode train \
         --bce_type cos
 
