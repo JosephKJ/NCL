@@ -51,7 +51,7 @@ class CentroidManager(object):
             self.count[cluster_id] += 1
             eta = 1.0 / self.count[cluster_id]
             if self.enable_mds_loss:
-                updated_cluster = ((1 - eta) * (self.centroids[cluster_id] + self.equi_dist_centroids[cluster_id]) + eta * X[i])
+                updated_cluster = ((1 - eta) * self.centroids[cluster_id] + eta * (X[i] + self.equi_dist_centroids[cluster_id]))
             else:
                 updated_cluster = ((1 - eta) * self.centroids[cluster_id] + eta * X[i])
             self.centroids[cluster_id] = updated_cluster
