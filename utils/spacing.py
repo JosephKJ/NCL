@@ -31,7 +31,7 @@ class CentroidManager(object):
         dist = np.hstack(dist)
         return dist
 
-    def init_clusters(self, X, enable_mds_loss=True):
+    def init_clusters(self, X, enable_mds_loss=False):
         model = KMeans(n_clusters=self.n_clusters, n_init=20)
         model.fit(X)
         self.centroids = model.cluster_centers_
