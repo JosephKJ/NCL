@@ -29,7 +29,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     enable_spacing_loss = False
     enable_NCL_loss = False
     n_clusters = 10
-    beta = 0.005
+    beta = 0.05
     cm = CentroidManager(512, n_clusters)
 
     for epoch in range(args.epochs):
