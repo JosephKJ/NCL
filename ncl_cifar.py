@@ -25,11 +25,11 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 10
+    spacing_loss_start_epoch = 1000
     enable_spacing_loss = False
-    enable_NCL_loss = True
+    enable_NCL_loss = False
     n_clusters = 10
-    beta = 0.05
+    beta = 0.005
     cm = CentroidManager(512, n_clusters)
 
     for epoch in range(args.epochs):
