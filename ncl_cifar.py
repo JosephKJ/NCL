@@ -25,9 +25,10 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 5
+    spacing_loss_start_epoch = 500
     enable_spacing_loss = False
-    n_clusters = 100
+    enable_NCL_loss = True
+    n_clusters = 10
     beta = 0.005
     cm = CentroidManager(512, n_clusters)
 
@@ -116,16 +117,18 @@ def train(model, train_loader, unlabeled_eval_loader, args):
                     spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
                 loss += spacing_loss
 
-            # # NCL loss for unlabeled data
-            # loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
 
-            # # NCL loss for labeled data
-            # loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
+            if enable_NCL_loss:
+                # NCL loss for unlabeled data
+                loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
 
-            # if epoch > 0:
-            #     loss += loss_ncl_ulb * args.w_ncl_ulb + loss_ncl_la * args.w_ncl_la
-            # else:
-            #     loss += loss_ncl_la * args.w_ncl_la
+                # NCL loss for labeled data
+                loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
+
+                if epoch > 0:
+                    loss += loss_ncl_ulb * args.w_ncl_ulb + loss_ncl_la * args.w_ncl_la
+                else:
+                    loss += loss_ncl_la * args.w_ncl_la
 
             # ===================backward=====================
             loss_record.update(loss.item(), x.size(0))
@@ -218,6 +221,8 @@ def train_old(model, train_loader, unlabeled_eval_loader, args):
 
 
 def test(model, test_loader, args):
+    n_classes = 5
+
     model.eval()
     preds = np.array([])
     targets = np.array([])
@@ -234,7 +239,7 @@ def test(model, test_loader, args):
         preds = np.append(preds, pred.cpu().numpy())
         features.extend(feat_q.detach().cpu().numpy())
 
-    predictions = KMeans(n_clusters=20, n_init=20).fit_predict(np.array(features))
+    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
     acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
