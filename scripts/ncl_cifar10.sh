@@ -16,4 +16,4 @@ python ncl_cifar.py \
         --seed 5 \
         --model_name resnet_cifar10_ncl \
         --mode train \
-        --bce_type cos
+        --bce_type RK
