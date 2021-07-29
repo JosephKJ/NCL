@@ -25,7 +25,7 @@ def train(model, train_loader, unlabeled_eval_loader, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 10
+    spacing_loss_start_epoch = 150
     enable_spacing_loss = False
     enable_NCL_loss = True
     n_clusters = 10
