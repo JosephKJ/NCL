@@ -14,6 +14,6 @@ python ncl_cifar.py \
         --rampup_coefficient 5.0 \
         --dataset_name cifar10 \
         --seed 5 \
-        --model_name resnet_cifar10_ncl \
+        --model_name resnet_cifar10_ncl_ext \
         --mode train \
         --bce_type cos
