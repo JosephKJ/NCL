@@ -38,7 +38,7 @@ def make_dataset(dir, classes, class_to_idx):
     samples = []
     for target in classes:
         d = os.path.join(dir, target)
-        print('Looking for files in {}'.format(d))
+        # print('Looking for files in {}'.format(d))
         if not os.path.isdir(d):
             continue
 
