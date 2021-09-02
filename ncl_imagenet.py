@@ -347,7 +347,7 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--bce_type', type=str, default='cos')
-    parser.add_argument('--hard_negative_start', default=3, type=int)
+    parser.add_argument('--hard_negative_start', default=3000, type=int)
     parser.add_argument('--knn', default=-1, type=int)
     parser.add_argument('--costhre', type=float, default=0.95)
     parser.add_argument('--m_size', default=3000, type=int)
@@ -379,18 +379,18 @@ if __name__ == "__main__":
 
     if args.fast_dataloader:
         # use fast data loader
-        mix_train_loader = ImageNetLoader882_30Mix_pre(args.batch_size, num_workers=32, path=args.dataset_root, unlabeled_subset=args.unlabeled_subset, aug='twice_pre', shuffle=True, subfolder='train', unlabeled_batch_size=args.unlabeled_batch_size)
+        mix_train_loader = ImageNetLoader882_30Mix_pre(args.batch_size, num_workers=8, path=args.dataset_root, unlabeled_subset=args.unlabeled_subset, aug='twice_pre', shuffle=True, subfolder='train', unlabeled_batch_size=args.unlabeled_batch_size)
         # labeled_eval_loader = ImageNetLoader882_pre(args.batch_size, num_workers=8, path=args.dataset_root, aug='none_pre', shuffle=False, subfolder='val')
-        unlabeled_eval_loader = ImageNetLoader30_pre(args.batch_size, num_workers=32, path=args.dataset_root, subset=args.unlabeled_subset, aug='none_pre', shuffle=False, subfolder='train')
+        unlabeled_eval_loader = ImageNetLoader30_pre(args.batch_size, num_workers=8, path=args.dataset_root, subset=args.unlabeled_subset, aug='none_pre', shuffle=False, subfolder='train')
     else:
         # use slow data loader
-        mix_train_loader = ImageNetLoader882_30Mix(args.batch_size, num_workers=32, path=args.dataset_root,
+        mix_train_loader = ImageNetLoader882_30Mix(args.batch_size, num_workers=8, path=args.dataset_root,
                                                        unlabeled_subset=args.unlabeled_subset, aug='twice',
                                                        shuffle=True, subfolder='train',
                                                        unlabeled_batch_size=args.unlabeled_batch_size)
         # labeled_eval_loader = ImageNetLoader882(args.batch_size, num_workers=8, path=args.dataset_root,
         #                                             aug='none', shuffle=False, subfolder='val')
-        unlabeled_eval_loader = ImageNetLoader30(args.batch_size, num_workers=32, path=args.dataset_root,
+        unlabeled_eval_loader = ImageNetLoader30(args.batch_size, num_workers=8, path=args.dataset_root,
                                                      subset=args.unlabeled_subset, aug='none', shuffle=False,
                                                      subfolder='train')
 
