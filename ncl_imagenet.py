@@ -380,7 +380,7 @@ if __name__ == "__main__":
     if args.fast_dataloader:
         # use fast data loader
         mix_train_loader = ImageNetLoader882_30Mix_pre(args.batch_size, num_workers=32, path=args.dataset_root, unlabeled_subset=args.unlabeled_subset, aug='twice_pre', shuffle=True, subfolder='train', unlabeled_batch_size=args.unlabeled_batch_size)
-        labeled_eval_loader = ImageNetLoader882_pre(args.batch_size, num_workers=8, path=args.dataset_root, aug='none_pre', shuffle=False, subfolder='val')
+        # labeled_eval_loader = ImageNetLoader882_pre(args.batch_size, num_workers=8, path=args.dataset_root, aug='none_pre', shuffle=False, subfolder='val')
         unlabeled_eval_loader = ImageNetLoader30_pre(args.batch_size, num_workers=32, path=args.dataset_root, subset=args.unlabeled_subset, aug='none_pre', shuffle=False, subfolder='train')
     else:
         # use slow data loader
@@ -388,8 +388,8 @@ if __name__ == "__main__":
                                                        unlabeled_subset=args.unlabeled_subset, aug='twice',
                                                        shuffle=True, subfolder='train',
                                                        unlabeled_batch_size=args.unlabeled_batch_size)
-        labeled_eval_loader = ImageNetLoader882(args.batch_size, num_workers=8, path=args.dataset_root,
-                                                    aug='none', shuffle=False, subfolder='val')
+        # labeled_eval_loader = ImageNetLoader882(args.batch_size, num_workers=8, path=args.dataset_root,
+        #                                             aug='none', shuffle=False, subfolder='val')
         unlabeled_eval_loader = ImageNetLoader30(args.batch_size, num_workers=32, path=args.dataset_root,
                                                      subset=args.unlabeled_subset, aug='none', shuffle=False,
                                                      subfolder='train')
@@ -415,9 +415,9 @@ if __name__ == "__main__":
         print("model loaded from {}.".format(args.model_dir))
         model.load_state_dict(torch.load(args.model_dir))
 
-    print('test on labeled classes')
-    args.head = 'head1'
-    test(model, labeled_eval_loader, args)
+    # print('test on labeled classes')
+    # args.head = 'head1'
+    # test(model, labeled_eval_loader, args)
     print('test on unlabeled classes')
     args.head = 'head2'
     test(model, unlabeled_eval_loader, args)
