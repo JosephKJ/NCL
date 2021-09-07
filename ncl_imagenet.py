@@ -341,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument('--topk', default=5, type=int)
     parser.add_argument('--model_name', type=str, default='resnet_imagenet')
     parser.add_argument('--seed', default=1, type=int)
-    parser.add_argument('--unlabeled_subset', type=str, default='A')
+    parser.add_argument('--unlabeled_subset', type=str, default='B')
     parser.add_argument('--w_ncl_la', type=float, default=0.1)
     parser.add_argument('--w_ncl_ulb', type=float, default=1.0)
     parser.add_argument('--mode', type=str, default='train')
