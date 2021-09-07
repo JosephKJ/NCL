@@ -215,13 +215,13 @@ def ImageNetLoader30_pre(batch_size, num_workers=2, path='./data/datasets/ImageN
 def ImageNetLoader882(batch_size, num_workers=2, path='./data/datasets/ImageNet/', aug=None, shuffle=False, subfolder='train'):
     dataset = ImageNet882(aug=aug, subfolder=subfolder, path=path)
     dataloader_882 = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
-    loader.labeled_length = len(dataset)
+    dataloader_882.labeled_length = len(dataset)
     return dataloader_882
 
 def ImageNetLoader882_pre(batch_size, num_workers=2, path='./data/datasets/ImageNet/', aug=None, shuffle=False, subfolder='train'):
     dataset = ImageNet882(aug=aug, subfolder=subfolder, path=path)
     dataloader_882 = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True, collate_fn=fast_collate2)
-    loader.labeled_length = len(dataset)
+    dataloader_882.labeled_length = len(dataset)
     return dataloader_882
 
 def ImageNetLoader882_30Mix(batch_size, num_workers=2, path='./data/datasets/ImageNet/',  unlabeled_subset='A', aug=None, shuffle=False, subfolder='train', unlabeled_batch_size=64):
