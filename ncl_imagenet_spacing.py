@@ -274,7 +274,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             # loss = loss_ce + loss_bce + w * consistency_loss
 
             # Spacing loss
-            if enable_spacing_loss:
+            if enable_spacing_loss and epoch >= spacing_loss_start_epoch:
                 spacing_loss = torch.tensor(0.).to(device)
                 features = feat_q.detach().cpu().numpy()
                 # Do re-assigment
@@ -423,7 +423,7 @@ if __name__ == "__main__":
     #     if 'head' not in name and 'layer4' not in name:
     #         param.requires_grad = False
 
-    num_workers = 8
+    num_workers = 12
     if args.fast_dataloader:
         # use fast data loader
         # mix_train_loader = ImageNetLoader882_30Mix_pre(args.batch_size, num_workers=8, path=args.dataset_root, unlabeled_subset=args.unlabeled_subset, aug='twice_pre', shuffle=True, subfolder='train', unlabeled_batch_size=args.unlabeled_batch_size)
