@@ -199,8 +199,8 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 5
-    enable_spacing_loss = True
+    spacing_loss_start_epoch = 500
+    enable_spacing_loss = False
     n_clusters = 882
     beta = 5
     cm = CentroidManager(512, n_clusters)
@@ -373,7 +373,7 @@ if __name__ == "__main__":
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--epochs', default=90, type=int)
     parser.add_argument('--rampup_length', default=50, type=int)
     parser.add_argument('--rampup_coefficient', type=float, default=10.0)
     parser.add_argument('--step_size', default=30, type=int)
