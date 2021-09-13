@@ -208,7 +208,11 @@ def ImageNetLoader30(batch_size, num_workers=2, path='./data/datasets/ImageNet/'
 
 def ImageNetLoader30_pre(batch_size, num_workers=2, path='./data/datasets/ImageNet/', subset='A', aug=None, shuffle=False, subfolder='train'):
     dataset = ImageNet30(path, subset, aug, subfolder)
-    dataloader_30 = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True, collate_fn=fast_collate2)
+    if shuffle:
+        # Shuffling is done for training. For training, use fast_collate2, and for testing use fast_collate
+        dataloader_30 = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True, collate_fn=fast_collate2)
+    else:
+        dataloader_30 = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True, collate_fn=fast_collate)
     dataloader_30.labeled_length = 882
     return dataloader_30
 
