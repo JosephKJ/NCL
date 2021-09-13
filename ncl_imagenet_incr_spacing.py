@@ -232,6 +232,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
         exp_lr_scheduler.step()
         w = args.rampup_coefficient * ramps.sigmoid_rampup(epoch, args.rampup_length)
         
+        prefetcher = data_prefetcher2(train_loader)
         # for batch_idx, ((x, x_bar),  label, idx) in enumerate(tqdm(train_loader)):
         for batch_idx in tqdm(range(num_iter)):
             x, x_bar, label, idx = prefetcher.next()
