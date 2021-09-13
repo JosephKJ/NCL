@@ -199,7 +199,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 1
+    spacing_loss_start_epoch = 0
     enable_spacing_loss = False
     n_clusters = 30
     beta = 5
@@ -208,7 +208,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     for epoch in range(start_epoch, args.epochs):
 
         prefetcher = data_prefetcher2(train_loader)
-        
+
         if epoch == spacing_loss_start_epoch:
             # Extract features
             model.eval()
