@@ -211,7 +211,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             # Extract features
             model.eval()
             all_features = []
-            for (data, _), _, _ in train_loader:
+            for data, _, _, _ in train_loader:
                 data = data.to(device)
                 _, feat, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
