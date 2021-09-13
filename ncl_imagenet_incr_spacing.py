@@ -207,11 +207,13 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
 
     for epoch in range(start_epoch, args.epochs):
 
+        prefetcher = data_prefetcher2(train_loader)
+        
         if epoch == spacing_loss_start_epoch:
             # Extract features
             model.eval()
             all_features = []
-            for data, _, _, _ in train_loader:
+            for data, _, _, _ in prefetcher:
                 data = data.to(device)
                 _, feat, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
@@ -227,7 +229,6 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
         exp_lr_scheduler.step()
         w = args.rampup_coefficient * ramps.sigmoid_rampup(epoch, args.rampup_length)
 
-        prefetcher = data_prefetcher2(train_loader)
         num_iter = len(train_loader)
         # for batch_idx, ((x, x_bar),  label, idx) in enumerate(tqdm(train_loader)):
         for batch_idx in tqdm(range(num_iter)):
