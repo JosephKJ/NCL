@@ -352,11 +352,11 @@ def test(model, test_loader, args):
 
         x, label, idx = prefetcher.next()
     
-    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
+    # predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
-    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
+    # acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
-    print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
+    # print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
 def copy_param(model, pretrain_dir):
@@ -388,8 +388,8 @@ if __name__ == "__main__":
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--epochs', default=50, type=int)
-    parser.add_argument('--rampup_length', default=30, type=int)
-    parser.add_argument('--rampup_coefficient', type=float, default=50.0)
+    parser.add_argument('--rampup_length', default=50, type=int)
+    parser.add_argument('--rampup_coefficient', type=float, default=1.0)
     parser.add_argument('--step_size', default=30, type=int)
     parser.add_argument('--batch_size', default=512, type=int)
     parser.add_argument('--unlabeled_batch_size', default=128, type=int)
@@ -416,6 +416,7 @@ if __name__ == "__main__":
     parser.add_argument('--hard_iter', type=int, default=5)
     parser.add_argument('--num_hard', type=int, default=400)
     parser.add_argument('--fast_dataloader', type=bool, default=True)
+    parser.add_argument('--spacing_loss_start_epoch', type=int, default=5)
 
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
