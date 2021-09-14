@@ -399,7 +399,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_root', type=str, default='./data/experiments/')
     parser.add_argument('--warmup_model_dir', type=str, default='./data/experiments/pretrained/resnet18_imagenet_classif_882_ICLR18.pth')
     parser.add_argument('--topk', default=5, type=int)
-    parser.add_argument('--model_name', type=str, default='resnet_imagenet_882_pretrained_plus_50')
+    parser.add_argument('--model_name', type=str, default='resnet_imagenet_882_pretrained_plus_50_rampupcoeff_50')
     parser.add_argument('--seed', default=1, type=int)
     parser.add_argument('--unlabeled_subset', type=str, default='A')
     parser.add_argument('--w_ncl_la', type=float, default=0.1)
