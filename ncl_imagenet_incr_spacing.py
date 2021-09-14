@@ -199,8 +199,6 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    print('Learning rate: {}'.format(exp_lr_scheduler.get_last_lr()))
-
     spacing_loss_start_epoch = 5
     enable_spacing_loss = False
     n_clusters = 30
@@ -321,6 +319,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),
                     'epoch': epoch, 'memory': ncl_ulb.state_dict(), 'memory_la': ncl_la.state_dict()}, args.model_dir[:-4] + '_inter.pth')
         args.head = 'head2'
+        print('Learning rate: {}'.format(exp_lr_scheduler.get_last_lr()))
         print('Train Epoch: {} Avg Loss: {:.4f}'.format(epoch, loss_record.avg))
         print('test on unlabeled classes')
         test(model, unlabeled_eval_loader, args)
