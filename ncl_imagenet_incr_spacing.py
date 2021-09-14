@@ -381,7 +381,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', default=90, type=int)
     parser.add_argument('--rampup_length', default=50, type=int)
     parser.add_argument('--rampup_coefficient', type=float, default=10.0)
-    parser.add_argument('--step_size', default=30, type=int)
+    parser.add_argument('--step_size', default=10, type=int)
     parser.add_argument('--batch_size', default=512, type=int)
     parser.add_argument('--unlabeled_batch_size', default=128, type=int)
     parser.add_argument('--num_labeled_classes', default=882, type=int)
