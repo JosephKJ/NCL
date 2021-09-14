@@ -199,6 +199,8 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
+    print('Learning rate: {}'.format(exp_lr_scheduler.get_last_lr()))
+
     spacing_loss_start_epoch = 5
     enable_spacing_loss = False
     n_clusters = 30
@@ -216,7 +218,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             all_features = []
             # for data, _, _, _ in prefetcher:
             for batch_idx in tqdm(range(num_iter)):
-                _, data, _, _ = prefetcher.next()
+                data, _, _, _ = prefetcher.next()
                 data = data.to(device)
                 _, feat, _, _ = model(data, 'feat_logit')
                 all_features.append(feat.detach().cpu().numpy())
