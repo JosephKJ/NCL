@@ -203,7 +203,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     spacing_loss_start_epoch = 5
     enable_spacing_loss = False
     n_clusters = 30
-    beta = 5
+    beta = 0.5
     cm = CentroidManager(512, n_clusters)
 
     for epoch in range(start_epoch, args.epochs):
@@ -390,7 +390,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', default=90, type=int)
     parser.add_argument('--rampup_length', default=50, type=int)
     parser.add_argument('--rampup_coefficient', type=float, default=10.0)
-    parser.add_argument('--step_size', default=10, type=int)
+    parser.add_argument('--step_size', default=30, type=int)
     parser.add_argument('--batch_size', default=512, type=int)
     parser.add_argument('--unlabeled_batch_size', default=128, type=int)
     parser.add_argument('--num_labeled_classes', default=882, type=int)
