@@ -6,6 +6,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score as nmi_score
 from sklearn.metrics import adjusted_rand_score as ari_score
 from utils.util import BCE, PairEnum, cluster_acc, Identity, AverageMeter, seed_torch
 from utils import ramps 
+from sklearn.cluster import KMeans
 from torchvision.models.resnet import BasicBlock
 from data.imagenetloader import ImageNetLoader30, ImageNetLoader882_30Mix, ImageNetLoader882, ImageNetLoader30_pre, ImageNetLoader882_30Mix_pre, ImageNetLoader882_pre
 from tqdm import tqdm
@@ -326,9 +327,12 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
 
 
 def test(model, test_loader, args):
+    n_classes = 30
+
     model.eval() 
     preds=np.array([])
     targets=np.array([])
+    features = []
 
     prefetcher = data_prefetcher(test_loader)
     x, label, idx = prefetcher.next()
@@ -336,7 +340,7 @@ def test(model, test_loader, args):
     for i in tqdm(range(num_iter)):
     # for batch_idx, (x, label, idx) in enumerate(tqdm(test_loader)):
         x, label = x.to(device), label.to(device)
-        output1, output2 = model(x)
+        _, feat_q, output1, output2 = model(x, 'feat_logit')
         if args.head=='head1':
             output = output1
         else:
@@ -344,10 +348,15 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets=np.append(targets, label.cpu().numpy())
         preds=np.append(preds, pred.cpu().numpy())
+        features.extend(feat_q.detach().cpu().numpy())
 
         x, label, idx = prefetcher.next()
+    
+    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
-    print('Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
+    print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
 def copy_param(model, pretrain_dir):
