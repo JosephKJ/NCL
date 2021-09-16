@@ -14,6 +14,9 @@ import math
 import os
 import warnings
 from models.NCL import NCLMemory
+from utils.spacing import CentroidManager
+from sklearn.cluster import KMeans
+
 warnings.filterwarnings("ignore", category=UserWarning)
 
 class ResNet(nn.Module):
@@ -196,6 +199,13 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
     criterion1 = nn.CrossEntropyLoss()
     criterion2 = BCE()
+    mse = nn.MSELoss()
+
+    spacing_loss_start_epoch = 5
+    enable_spacing_loss = False
+    n_clusters = 912
+    beta = 5
+    cm = CentroidManager(512, n_clusters)
 
     for epoch in range(start_epoch, args.epochs):
         loss_record = AverageMeter()
@@ -206,6 +216,25 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
 
         prefetcher = data_prefetcher2(train_loader)
         num_iter = len(train_loader)
+
+        if epoch == spacing_loss_start_epoch:
+            # Extract features
+            model.eval()
+            all_features = []
+            # for data, _, _, _ in prefetcher:
+            for batch_idx in tqdm(range(num_iter)):
+                data, _, _, _ = prefetcher.next()
+                data = data.to(device)
+                _, feat, _, _ = model(data, 'feat_logit')
+                all_features.append(feat.detach().cpu().numpy())
+            all_features = np.vstack(all_features)
+            # Initialize
+            cm.init_clusters(all_features)
+            enable_spacing_loss = True
+            print('Initialized spacing loss.')
+        
+        prefetcher = data_prefetcher2(train_loader)
+
         # for batch_idx, ((x, x_bar),  label, idx) in enumerate(tqdm(train_loader)):
         for batch_idx in tqdm(range(num_iter)):
             x, x_bar, label, idx = prefetcher.next()
@@ -249,6 +278,28 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             consistency_loss = F.mse_loss(prob1, prob1_bar) + F.mse_loss(prob2, prob2_bar)
             loss = loss_ce + loss_bce + w * consistency_loss
 
+            # Spacing loss
+            if enable_spacing_loss and epoch >= spacing_loss_start_epoch:
+                spacing_loss = torch.tensor(0.).to(device)
+                features = feat_q.detach().cpu().numpy()
+                # Do re-assigment
+                cluster_ids = cm.update_assingment(features)
+                # Update centroids
+                elem_count = np.bincount(cluster_ids, minlength=n_clusters)
+                for k in range(n_clusters):
+                    if elem_count[k] == 0:
+                        continue
+                    cm.update_cluster(features[cluster_ids == k], k)
+                # Compute loss
+                batch_size = feat_q.size()[0]
+                centroids = torch.FloatTensor(cm.centroids).to(device)
+                for i in range(batch_size):
+                    # diff = feat_q[i] - centroids[cluster_ids[i]]
+                    # distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
+                    # spacing_loss += 0.5 * beta * torch.squeeze(distance)
+                    spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
+                loss += spacing_loss
+
             # NCL loss for unlabeled data
             loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
 
@@ -275,9 +326,11 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
 
 
 def test(model, test_loader, args):
+    n_classes = 30
     model.eval() 
     preds=np.array([])
     targets=np.array([])
+    features = []
 
     prefetcher = data_prefetcher(test_loader)
     x, label, idx = prefetcher.next()
@@ -285,7 +338,7 @@ def test(model, test_loader, args):
     for i in tqdm(range(num_iter)):
     # for batch_idx, (x, label, idx) in enumerate(tqdm(test_loader)):
         x, label = x.to(device), label.to(device)
-        output1, output2 = model(x)
+        _, feat_q, output1, output2 = model(x, 'feat_logit')
         if args.head=='head1':
             output = output1
         else:
@@ -293,10 +346,17 @@ def test(model, test_loader, args):
         _, pred = output.max(1)
         targets=np.append(targets, label.cpu().numpy())
         preds=np.append(preds, pred.cpu().numpy())
+        features.extend(feat_q.detach().cpu().numpy())
 
         x, label, idx = prefetcher.next()
+    
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
     print('Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+    
+    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
+    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
+    print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
+
 
 
 def copy_param(model, pretrain_dir):
@@ -327,7 +387,7 @@ if __name__ == "__main__":
     parser.add_argument('--gamma', type=float, default=0.1)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
-    parser.add_argument('--epochs', default=90, type=int)
+    parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--rampup_length', default=50, type=int)
     parser.add_argument('--rampup_coefficient', type=float, default=10.0)
     parser.add_argument('--step_size', default=30, type=int)
@@ -339,13 +399,13 @@ if __name__ == "__main__":
     parser.add_argument('--exp_root', type=str, default='./data/experiments/')
     parser.add_argument('--warmup_model_dir', type=str, default='./data/experiments/pretrained/resnet18_imagenet_classif_882_ICLR18.pth')
     parser.add_argument('--topk', default=5, type=int)
-    parser.add_argument('--model_name', type=str, default='resnet_imagenet')
+    parser.add_argument('--model_name', type=str, default='resnet_imagenet_spacing')
     parser.add_argument('--seed', default=1, type=int)
-    parser.add_argument('--unlabeled_subset', type=str, default='B')
+    parser.add_argument('--unlabeled_subset', type=str, default='A')
     parser.add_argument('--w_ncl_la', type=float, default=0.1)
     parser.add_argument('--w_ncl_ulb', type=float, default=1.0)
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--resume', type=str, default=None)
+    parser.add_argument('--resume', type=str, default='./data/experiments/ncl_imagenet/resnet_imagenet_ncl_A.pth')
     parser.add_argument('--bce_type', type=str, default='cos')
     parser.add_argument('--hard_negative_start', default=3000, type=int)
     parser.add_argument('--knn', default=-1, type=int)
