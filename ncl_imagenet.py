@@ -201,7 +201,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     criterion2 = BCE()
     mse = nn.MSELoss()
 
-    spacing_loss_start_epoch = 0
+    spacing_loss_start_epoch = 89
     enable_spacing_loss = False
     n_clusters = 912
     beta = 5
