@@ -405,7 +405,7 @@ if __name__ == "__main__":
     parser.add_argument('--w_ncl_la', type=float, default=0.1)
     parser.add_argument('--w_ncl_ulb', type=float, default=1.0)
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--resume', type=str, default='./data/experiments/ncl_imagenet/resnet_imagenet_ncl_A.pth')
+    parser.add_argument('--resume', type=str, default='./data/experiments/ncl_imagenet/resnet_imagenet_ncl_A_inter.pth')
     parser.add_argument('--bce_type', type=str, default='cos')
     parser.add_argument('--hard_negative_start', default=3000, type=int)
     parser.add_argument('--knn', default=-1, type=int)
