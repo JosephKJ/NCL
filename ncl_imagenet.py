@@ -218,6 +218,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
         num_iter = len(train_loader)
 
         if epoch == spacing_loss_start_epoch:
+            print('Starting to initialize spacing loss.')
             # Extract features
             model.eval()
             all_features = []
