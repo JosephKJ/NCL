@@ -204,7 +204,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
     spacing_loss_start_epoch = 89
     enable_spacing_loss = False
     n_clusters = 30
-    beta = 5
+    beta = 0.5
     cm = CentroidManager(512, n_clusters)
 
     for epoch in range(start_epoch, args.epochs):
@@ -299,6 +299,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
                     # distance = torch.matmul(diff.view(1, -1), diff.view(-1, 1))
                     # spacing_loss += 0.5 * beta * torch.squeeze(distance)
                     spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
+                print(spacing_loss)
                 loss += spacing_loss
 
             # NCL loss for unlabeled data
