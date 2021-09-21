@@ -303,7 +303,6 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             # NCL loss for unlabeled data
             loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
             if epoch > 0:
-                print('loss_ncl_ulb: {}'.format(loss_ncl_ulb))
                 loss += loss_ncl_ulb * args.w_ncl_ulb
 
             # # NCL loss for labeled data
@@ -355,11 +354,11 @@ def test(model, test_loader, args):
 
         x, label, idx = prefetcher.next()
     
-    # predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
+    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
-    # acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
+    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
-    # print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
+    print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
 def copy_param(model, pretrain_dir):
