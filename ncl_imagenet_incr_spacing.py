@@ -300,8 +300,11 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
                     spacing_loss += 0.5 * beta * mse(feat_q[i], centroids[cluster_ids[i]])
                 loss += spacing_loss
 
-            # # NCL loss for unlabeled data
-            # loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
+            # NCL loss for unlabeled data
+            loss_ncl_ulb = ncl_ulb(feat_q[~mask_lb], feat_k[~mask_lb], label[~mask_lb], epoch, False, ncl_la.memory.clone().detach())
+            if epoch > 0:
+                print('loss_ncl_ulb: {}'.format(loss_ncl_ulb))
+                loss += loss_ncl_ulb * args.w_ncl_ulb
 
             # # NCL loss for labeled data
             # loss_ncl_la = ncl_la(feat_q[mask_lb], feat_k[mask_lb], label[mask_lb], epoch, True)
@@ -389,7 +392,7 @@ if __name__ == "__main__":
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--epochs', default=50, type=int)
     parser.add_argument('--rampup_length', default=50, type=int)
-    parser.add_argument('--rampup_coefficient', type=float, default=1.0)
+    parser.add_argument('--rampup_coefficient', type=float, default=10.0)
     parser.add_argument('--step_size', default=30, type=int)
     parser.add_argument('--batch_size', default=512, type=int)
     parser.add_argument('--unlabeled_batch_size', default=128, type=int)
