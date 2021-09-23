@@ -3,7 +3,7 @@ from sklearn.cluster import KMeans
 from sklearn.manifold import MDS
 from scipy.spatial import distance
 from joblib import Parallel, delayed
-from kmeans import KMeans_cosine_GPU, KMeans_GPU
+from utils.kmeans import KMeans_cosine_GPU, KMeans_GPU
 
 
 def dist_compute(X, centroids):
