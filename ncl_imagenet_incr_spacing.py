@@ -16,6 +16,7 @@ import os
 import warnings
 from models.NCL import NCLMemory
 from utils.spacing import CentroidManager
+from utils.kmeans import KMeans_cosine_GPU, KMeans_GPU
 warnings.filterwarnings("ignore", category=UserWarning)
 
 class ResNet(nn.Module):
@@ -192,7 +193,7 @@ class data_prefetcher2():
         return input, input1, target, idx
 
 
-def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
+def train(model, model_backup, train_loader, unlabeled_eval_loader, start_epoch, args):
     print ('Start Neighborhood Contrastive Learning:')
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
@@ -240,6 +241,7 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
             x, x_bar, label = x.to(device), x_bar.to(device), label.to(device)
 
             feat, feat_q, output1, output2 = model(x, 'feat_logit')
+            feat_old, _, _, _ = model_backup(x, 'feat_logit')
             feat_bar, feat_k, output1_bar, output2_bar = model(x_bar, 'feat_logit')
 
             prob1, prob1_bar, prob2, prob2_bar = F.softmax(output1, dim=1), F.softmax(output1_bar, dim=1), F.softmax(
@@ -247,7 +249,9 @@ def train(model, train_loader, unlabeled_eval_loader, start_epoch, args):
 
             mask_lb = idx < train_loader.labeled_length
 
-            rank_feat = (feat[~mask_lb]).detach()
+            # rank_feat = (feat[~mask_lb]).detach()
+            rank_feat = (feat_old[~mask_lb]).detach()
+
 
             if args.bce_type == 'cos':
                 # default: cosine similarity with threshold
@@ -354,10 +358,14 @@ def test(model, test_loader, args):
 
         x, label, idx = prefetcher.next()
     
-    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
     acc, nmi, ari = cluster_acc(targets.astype(int), preds.astype(int)), nmi_score(targets, preds), ari_score(targets, preds)
-    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('From logits \t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc, nmi, ari))
+
+    if args.kmeans_type == 'gpu_euclid':
+        predictions, _ = KMeans_GPU(feat_q)
+
+    predictions = KMeans(n_clusters=n_classes, n_init=20).fit_predict(np.array(features))
+    acc_f, nmi_f, ari_f = cluster_acc(targets.astype(int), predictions.astype(int)), nmi_score(targets, predictions), ari_score(targets, predictions)
     print('From features\t: Test acc {:.4f}, nmi {:.4f}, ari {:.4f}'.format(acc_f, nmi_f, ari_f))
 
 
@@ -401,7 +409,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_root', type=str, default='./data/experiments/')
     parser.add_argument('--warmup_model_dir', type=str, default='./data/experiments/pretrained/resnet18_imagenet_classif_882_ICLR18.pth')
     parser.add_argument('--topk', default=5, type=int)
-    parser.add_argument('--model_name', type=str, default='resnet_imagenet_882_pretrained_plus_50_rampupcoeff_50')
+    parser.add_argument('--model_name', type=str, default='resnet_imagenet_882_pretrained_plus_50_rampupcoeff_50_old_model')
     parser.add_argument('--seed', default=1, type=int)
     parser.add_argument('--unlabeled_subset', type=str, default='A')
     parser.add_argument('--w_ncl_la', type=float, default=0.1)
@@ -419,6 +427,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_hard', type=int, default=400)
     parser.add_argument('--fast_dataloader', type=bool, default=True)
     parser.add_argument('--spacing_loss_start_epoch', type=int, default=5)
+    parser.add_argument('--kmeans_type', type=str, default='cpu') # cpu, gpu_euclid, gpu_cosine
+
 
     args = parser.parse_args()
     args.cuda = torch.cuda.is_available()
@@ -434,11 +444,19 @@ if __name__ == "__main__":
     model = nn.DataParallel(model, args.device_ids).to(device)
     model = copy_param(model, args.warmup_model_dir)
 
+    # Backup model for generating the pseudo-labels
+    model_backup = ResNet(BasicBlock, [2,2,2,2], args.num_labeled_classes, args.num_unlabeled_classes)
+    model_backup = nn.DataParallel(model_backup, args.device_ids).to(device)
+    model_backup = copy_param(model_backup, args.warmup_model_dir)
+
     num_classes = args.num_labeled_classes + args.num_unlabeled_classes
 
     for name, param in model.named_parameters(): 
         if 'head' not in name and 'layer4' not in name:
             param.requires_grad = False
+
+    for name, param in model_backup.named_parameters(): 
+        param.requires_grad = False
 
     num_workers = 12
     if args.fast_dataloader:
@@ -476,7 +494,7 @@ if __name__ == "__main__":
         start_epoch = 0
 
     if args.mode == 'train':
-        train(model, mix_train_loader, unlabeled_eval_loader, start_epoch, args)
+        train(model, model_backup, mix_train_loader, unlabeled_eval_loader, start_epoch, args)
         torch.save(model.state_dict(), args.model_dir)
         print("model saved to {}.".format(args.model_dir))
     else:

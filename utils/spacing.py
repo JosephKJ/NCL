@@ -3,6 +3,7 @@ from sklearn.cluster import KMeans
 from sklearn.manifold import MDS
 from scipy.spatial import distance
 from joblib import Parallel, delayed
+from kmeans import KMeans_cosine_GPU, KMeans_GPU
 
 
 def dist_compute(X, centroids):
@@ -15,14 +16,15 @@ def dist_compute(X, centroids):
 
 class CentroidManager(object):
 
-    def __init__(self, feature_dim, n_clusters):
+    def __init__(self, feature_dim, n_clusters, kmeans_type='cpu'):
         self.feature_dim = feature_dim
         self.n_clusters = n_clusters
         self.centroids = np.zeros((self.n_clusters, self.feature_dim))
         self.count = 100 * np.ones((self.n_clusters))
         self.equi_dist_centroids = []
         self.enable_mds_loss = False
-        self.n_jobs = 1
+        self.n_jobs = 10
+        self.kmeans_type = kmeans_type
 
     def parallel_dist_compute(self, X):
         dist = Parallel(n_jobs=self.n_jobs)(
@@ -32,9 +34,14 @@ class CentroidManager(object):
         return dist
 
     def init_clusters(self, X, enable_mds_loss=True):
-        model = KMeans(n_clusters=self.n_clusters, n_init=20)
-        model.fit(X)
-        self.centroids = model.cluster_centers_
+        if self.kmeans_type == 'gpu_euclid':
+            _, self.centroids = KMeans_GPU(X)
+        elif self.kmeans_type == 'gpu_cosine':
+            _, self.centroids = KMeans_cosine_GPU(X)
+        else:
+            model = KMeans(n_clusters=self.n_clusters, n_init=20)
+            model.fit(X)
+            self.centroids = model.cluster_centers_
         if enable_mds_loss:
             self.enable_mds_loss = True
             self.prepare_equidistant_centroids()
